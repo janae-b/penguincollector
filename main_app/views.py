@@ -11,3 +11,6 @@ def penguins_index(request):
   penguins = Penguin.objects.all()
   return render(request, 'penguins/index.html', { 'penguins': penguins })
 
+def penguins_detail(request, penguin_id):
+  penguin = Penguin.objects.get(id=penguin_id)
+  return render(request, 'penguins/detail.html', { 'penguin': penguin })
