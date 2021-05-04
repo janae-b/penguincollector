@@ -19,8 +19,9 @@
           </a></li>
         </ul>
         <ul class="right">
-          <li><a href="/about">About</a></li>
-          <li><a href="/penguins">View All My Penguins</a></li>
+          <li><a href="{% url 'about' %}">About</a></li>
+          <li><a href="{% url 'penguins_create' %}">Add a Penguin</a></li>
+          <li><a href="{% url 'index' %}">View All My Penguins</a></li>
         </ul>
       </div>
     </nav>
