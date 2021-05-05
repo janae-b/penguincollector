@@ -1,6 +1,10 @@
 from django.shortcuts import render, redirect
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.views.generic import ListView, DetailView
+from django.contrib.auth import login
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import FeedingForm
 import uuid
 import boto3
@@ -16,10 +20,12 @@ def home(request):
 def about(request):
   return render(request, 'about.html')
 
+@login_required
 def penguins_index(request):
-  penguins = Penguin.objects.all()
+  penguins = Penguin.objects.filter(user=request.user)
   return render(request, 'penguins/index.html', { 'penguins': penguins })
 
+@login_required
 def penguins_detail(request, penguin_id):
   penguin = Penguin.objects.get(id=penguin_id)
   toys_penguin_doesnt_have = Toy.objects.exclude(id__in = penguin.toys.all().values_list('id'))
@@ -30,6 +36,7 @@ def penguins_detail(request, penguin_id):
     'toys': toys_penguin_doesnt_have
   })
 
+@login_required
 def add_feeding(request, penguin_id):
   form = FeedingForm(request.POST)
   if form.is_valid():
@@ -38,41 +45,47 @@ def add_feeding(request, penguin_id):
     new_feeding.save()
   return redirect('detail', penguin_id=penguin_id)
 
-class ToyList(ListView):
+class ToyList(LoginRequiredMixin, ListView):
   model = Toy
 
-class ToyDetail(DetailView):
+class ToyDetail(LoginRequiredMixin, DetailView):
   model = Toy
 
-class ToyCreate(CreateView):
+class ToyCreate(LoginRequiredMixin, CreateView):
   model = Toy
   fields = '__all__'
 
-class ToyUpdate(UpdateView):
+class ToyUpdate(LoginRequiredMixin, UpdateView):
   model = Toy
   fields = ['name', 'color']
 
-class ToyDelete(DeleteView):
+class ToyDelete(LoginRequiredMixin, DeleteView):
   model = Toy
   success_url = '/toys/'
 
-class PenguinCreate(CreateView):
+class PenguinCreate(LoginRequiredMixin, CreateView):
   model = Penguin
-  fields = '__all__'
-  success_url = '/penguins/'
+  fields = ['name', 'breed', 'description', 'age']
 
-class PenguinUpdate(UpdateView):
+  def form_valid(self, form):
+    form.instance.user = self.request.user
+    return super().form_valid(form)
+  
+
+class PenguinUpdate(LoginRequiredMixin, UpdateView):
   model = Penguin
   fields = ['breed', 'description', 'age']
 
-class PenguinDelete(DeleteView):
+class PenguinDelete(LoginRequiredMixin, DeleteView):
   model = Penguin
   success_url = '/penguins/'
 
+@login_required
 def assoc_toy(request, penguin_id, toy_id):
   Penguin.objects.get(id=penguin_id).toys.add(toy_id)
   return redirect('detail', penguin_id=penguin_id)
 
+@login_required
 def add_photo(request, penguin_id):
   photo_file = request.FILES.get('photo-file', None)
   if photo_file:
@@ -86,3 +99,22 @@ def add_photo(request, penguin_id):
     except Exception as err:
       print('An error occurred uploading file to S3: %s' % err)
   return redirect('detail', penguin_id=penguin_id)
+
+def signup(request):
+  error_message = ''
+  if request.method == 'POST':
+    # This is how to create a 'user' form object
+    # that includes the data from the browser
+    form = UserCreationForm(request.POST)
+    if form.is_valid():
+      # This will add the user to the database
+      user = form.save()
+      # This is how we log a user in via code
+      login(request, user)
+      return redirect('index')
+    else:
+      error_message = 'Invalid sign up - try again'
+  # A bad POST or a GET request, so render signup.html with an empty form
+  form = UserCreationForm()
+  context = {'form': form, 'error_message': error_message}
+  return render(request, 'registration/signup.html', context)  
