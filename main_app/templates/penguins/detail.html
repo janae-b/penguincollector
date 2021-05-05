@@ -3,21 +3,104 @@
 
 <h1>Penguin Details</h1>
 
-<div class="card">
-  <div class="card-content">
-    <span class="card-title">{{ penguin.name }}</span>
-    <p>Breed: {{ penguin.breed }}</p>
-    <p>Description: {{ penguin.description }}</p>
-    {% if penguin.age > 0 %}
-      <p>Age: {{ penguin.age }}</p>
-    {% else %}
-      <p>Age: Penguin</p>
-    {% endif %}
+<div class="row">
+  <div class="col s6">
+    <div class="card">
+      <div class="card-content">
+        <span class="card-title">{{ penguin.name }}</span>
+        <p>Breed: {{ penguin.breed }}</p>
+        <p>Description: {{ penguin.description }}</p>
+        {% if penguin.age > 0 %}
+          <p>Age: {{ penguin.age }}</p>
+        {% else %}
+          <p>Age: Chick</p>
+        {% endif %}
+      </div>
+      <div class="card-action">
+        <a href="{% url 'penguins_update' penguin.id %}">Edit</a>
+        <a href="{% url 'penguins_delete' penguin.id %}">Delete</a>
+      </div>
+    </div>
   </div>
-  <div class="card-action">
-    <a href="{% url 'penguins_update' penguin.id %}">Edit</a>
-    <a href="{% url 'penguins_delete' penguin.id %}">Delete</a>
+  <div class="col s6">
+    <form action="{% url 'add_feeding' penguin.id %}" method="post">
+      {% csrf_token %}
+      {{ feeding_form.as_p }}
+      <input type="submit" class="btn" value="Add Feeding">
+    </form>
+    <br>
+      {% if penguin.fed_for_today %}
+        <div class="card-panel teal-text center-align">{{penguin.name}} has been fed all meals for today</div>
+      {% else %}
+        <div class="card-panel red-text center-align">{{penguin.name}} might be hungry</div>
+      {% endif %}
+      <table class="striped">
+      <thead>
+        <tr><th>Date</th><th>Meal</th></tr>
+      </thead>
+      <tbody>
+        {% for feeding in penguin.feeding_set.all %}
+          <tr>
+            <td>{{feeding.date}}</td>
+            <td>{{feeding.get_meal_display}}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
-
+<hr>
+<div class="row">
+  <div class="col s6">
+    <h3>{{ penguin.name }}'s Toys</h3>
+    {% if penguin.toys.count %}
+      {% for toy in penguin.toys.all %}
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title">
+              A <span style="color: {{ toy.color }}">{{ toy.color }}</span> {{ toy.name }}
+            </span>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <h5>No Toys :(</h5>
+    {% endif %}
+  </div>
+  <!-- Available toys will come after this line -->
+</div>
+<div class="col s6">
+    <h3>Available Toys</h3>
+    {% if toys.count %}
+      {% for toy in toys.all %}
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title">
+              A <span style="color: {{ toy.color }}">{{ toy.color }}</span> {{ toy.name }}
+            </span>
+          </div>
+          <div class="card-action">
+            <form action="{% url 'assoc_toy' penguin.id toy.id %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn">Add</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <h5>{{penguin.name}} Already Has All Toys Available</h5>
+    {% endif %}
+  </div>
+</div>
+<script>
+  var dateEl = document.getElementById('id_date');
+  M.Datepicker.init(dateEl, {
+    format: 'yyyy-mm-dd',
+    defaultDate: new Date(),
+    setDefaultDate: true,
+    autoClose: true
+  });
+  var selectEl = document.getElementById('id_meal');
+  M.FormSelect.init(selectEl);
+</script>
 {% endblock %}
